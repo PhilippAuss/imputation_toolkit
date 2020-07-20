@@ -5,20 +5,45 @@ import matplotlib.cm as cm
 import numpy as np
 from sklearn import preprocessing
 import time
-
-
 from sklearn.metrics import r2_score
 
 SEED = 42
 
+"""
+This python file contains functions for testing different imputation methods and compare them depending on their R2 score as well as visually in form of Qplots.
+"""
 
 
 
 def calc_perc_missing_values(df):
+	"""
+	Calculates the percentage of missing values per column of a dataframe
+	and returns a dataframe with the columns and the corresponding missing value percentage.
+
+	Parameters
+	----------
+	df: pandas dataframe
+
+	Returns
+	-------
+	pandas dataframe with the percentage of missing values per attribute
+	"""
     return df.isna().sum()/len(df)
 
 
 def bar_plot_missing_values(df,figsize=(30,8),save_fig=False,file_name="bar_plot_missing_values"):
+	"""
+	Calculates the percentage of missing values per column of a dataframe
+	and returns a dataframe with the columns and the corresponding missing value percentage.
+
+	Parameters
+	----------
+	df: pandas dataframe
+
+	Returns
+	-------
+	pandas dataframe with the percentage of missing values per attribute
+	"""
     plt.style.use('ggplot')
     df_missing = df.isna().sum()/len(df)
     df_missing = df_missing.reset_index()
@@ -34,18 +59,24 @@ def bar_plot_missing_values(df,figsize=(30,8),save_fig=False,file_name="bar_plot
     return df_missing.sort_values(["percentage_missing"],ascending=True)
 
 
-def QQ_plot(X, X_pred_mse, X_pred_r2, column_names = [], fig_size = (15,10), title="Results", x_label = "actual values", y_label = "predicted values"):
-    plt.style.use("ggplot")
-    n_obs, n_att = X.shape
-
-    if len(column_names) == 0:
-        column_names = range(n_att)
-
-    Xs = np.concatentate((X,X_pred_mse,X_pred_r2),axis=0)
-    Xs = preprocessing.minmax_scale(Xs)
-
-
 def QQ_matrixPlot(X, X_pred, column_names=[], fig_size = (15,10), title="Results", x_label = "actual values", y_label = "predicted values"):
+	"""
+	Plots the imputed values against the original values (ground truth)
+
+	Parameters
+	----------
+	X: original full numpy matrix
+	X_pred: numpy matrix with the imputed values
+	column_names: list with the names of the attributes
+	fig_size: tuple with the size of the output plot
+	title: title string of the plot
+	x_label: str
+	y_label: str
+
+	Returns
+	-------
+	ax: matplotlib axis element which can be ploted or stored
+	"""
     plt.style.use('ggplot')
     n_obs, n_att = X_pred.shape
 
@@ -70,21 +101,23 @@ def QQ_matrixPlot(X, X_pred, column_names=[], fig_size = (15,10), title="Results
     fig.tight_layout()
 
     return ax
-    #plt.show()
 
 
 def binary_sampler(p, rows, cols, seed = SEED):
-    '''
-    Sample binary random variables.
+	'''
+	Sample binary random variables.
 
-    Args:
-      - p: probability of 1
-      - rows: the number of rows
-      - cols: the number of columns
+	Parameters
+	----------
+	p: probability of 1
+	rows: the number of rows
+	cols: the number of columns
+	seed: integer which indicates the random state
 
-    Returns:
-      - binary_random_matrix: generated binary random matrix.
-    '''
+	Returns
+	-------
+	binary_random_matrix: generated binary random matrix.
+	'''
     np.random.seed(seed)
     unif_random_matrix = np.random.uniform(0., 1., size=[rows, cols])
     binary_random_matrix = 1 * (unif_random_matrix < p)
@@ -92,6 +125,20 @@ def binary_sampler(p, rows, cols, seed = SEED):
 
 
 def _prepare_data(data_x, miss_rate=0.2, seed = SEED):
+	'''
+	replaces randomly values from a dataframe by NAs
+
+	Parameters
+	----------
+	data_x: original dataframe without missing values
+	miss_rate: rate of missing values which should be inserted
+	seed: seed which is needed for reproducibility
+
+	Returns
+	-------
+	miss_data_x: dataframe with missing values
+	data_m: mask which indicates which entry is a missing value
+	'''
     # Parameters
     no, dim = data_x.shape
 
@@ -104,6 +151,25 @@ def _prepare_data(data_x, miss_rate=0.2, seed = SEED):
 
 
 def _test_imputation_method(method, imputer, X_missing, X, data_m, columns, R2_per_col = True,  seed = SEED):
+	'''
+	tests an imputation method on a numpy matrix
+
+	Parameters
+	----------
+	method: name of the imputation method
+	imputer: Imputer which should be tested, has to have the same interface as the sklearn IterativeImputers
+	X_missing: numpy matrix with the data which should be imputed
+	X: original data without missing values for comparison
+	data_m: mask of the missing values
+	columns: list of the column names of the X
+	R2_per_col: boolean, which indicates if the R2 score for every singel column should be returned
+	seed: set seed to achieve reproducibility	
+
+	Returns
+	-------
+	df: dataframe with the results of the imputation test
+	X_pred: numpy matrix with the imputed values
+	'''    
     start_time = time.time()
     X_pred = imputer.fit_transform(X_missing)
     delta_time = [time.time() - start_time]
@@ -124,7 +190,24 @@ def _test_imputation_method(method, imputer, X_missing, X, data_m, columns, R2_p
     return df, X_pred
 
 
-def test_imputation_methods(df, imputer_dict, miss_rate=0.2, mse_per_col = True, seed = SEED,save_Qplot = False, filename ="Q_plot_best_model"):
+def test_imputation_methods(df, imputer_dict, miss_rate=0.2, R2_per_col=True, seed = SEED,save_Qplot = False, filename ="Q_plot_best_model"):
+	'''
+	tests a dictionary of imputation methods on a numpy matrix
+
+	Parameters
+	----------
+	df: Full dataframe, where imputation strategies should be compared
+	imputer_dict: dictionary with imputation methods (sklearn IterativeImputer interface)
+	miss_rate: rate of missing values, which are put into the df for testing purpose
+	R2_per_col: boolean, which indicates if the R2 score for every singel column should be returned
+	seed: set seed to achieve reproducibility	
+	save_Qplot: boolean, which indicates if the Qplot of the best imputation strategy should be saved as png
+	filename: name of the Qplot of the best imputer
+
+	Returns
+	-------
+	df_results: dataframe with the imputation results for the different methods
+	'''    
     X = df.values
     columns = df.columns
 
@@ -137,7 +220,7 @@ def test_imputation_methods(df, imputer_dict, miss_rate=0.2, mse_per_col = True,
 
     for method_name, imputer in tqdm(imputer_dict.items()):
         tqdm.write(f"Test {method_name}...")
-        df_imp, X_pred = _test_imputation_method(method_name, imputer, X_missing, X, missing_mask, columns,mse_per_col, seed = seed)
+        df_imp, X_pred = _test_imputation_method(method_name, imputer, X_missing, X, missing_mask, columns,R2_per_col, seed = seed)
         tqdm.write(f"finished")
         results.append(df_imp)
 
@@ -158,6 +241,19 @@ def test_imputation_methods(df, imputer_dict, miss_rate=0.2, mse_per_col = True,
 
 
 def drop_cols_perc_na(df, perc_missing=0.5, cols_to_keep = []):
+	'''
+	drops columns of a dataframe if they have more than a specified percentage of missing values
+
+	Parameters
+	----------
+	df: pandas dataframe
+	perc_missing: rate of missing values, if higher column get's dropped
+	cols_to_keep: list of columnames, which should be kept no matter how many missing values
+
+	Returns
+	-------
+	df_res: resulting dataframe
+	'''  
     n_samples, n_col = df.shape
 
     quote = int(n_samples * perc_missing)
