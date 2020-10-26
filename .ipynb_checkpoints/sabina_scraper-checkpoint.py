@@ -126,13 +126,6 @@ class sabina_scraper:
         self.name_of_files = name_of_files
 
 
-    """
-    Starts the chromedriver and logs in into the Sabina online database. Afterwards the function      checks for the autosave file, which should be downloaded.
-    
-    Returns
-    -------
-    The webdriver which has navigated to the autosave file from Sabina.
-    """
     def _start_webdriver_and_login_to_sabina(self):
         # Using Chrome to access web
         driver = webdriver.Chrome("/usr/bin/chromedriver")
@@ -175,14 +168,7 @@ class sabina_scraper:
 
         return driver
 
-    """
-    Downloads a shard of the autosave Sabina table
-    
-    Parameters
-    ----------
-    driver: actual chromedriver
-    index: starting index of the shard of the data, which should be downloaded
-    """
+
     def _start_data_download(self,driver, index):
         timeout = 10
         # Go to initial Table page:
@@ -231,17 +217,7 @@ class sabina_scraper:
             except:
                 time.sleep(timeout)
 
-    """
-    Starts the downloading process of the beforehand stored table from Sabina
-    
-    Parameters
-    ----------
-    already initialized by creating the sabins_scraper instance
-    
-    Returns
-    -------
-    saves the downloaded Sabina table shards as xls files into your Downloads folder
-    """
+
     def get_data(self):
         sabina_driver = self._start_webdriver_and_login_to_sabina()
         timeout = 10
